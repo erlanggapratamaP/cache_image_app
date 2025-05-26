@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -35,5 +37,47 @@ class CustomCacheManager extends CacheManager {
 
   Future<void> removeFile(String url) async {
     await removeFile(url);
+  }
+
+  Future<int> getCacheSize() async {
+    final directory = await getTemporaryDirectory();
+    final cacheDir = Directory(p.join(directory.path, key));
+    if (await cacheDir.exists()) {
+      int size = 0;
+      await for (final file in cacheDir.list(recursive: true)) {
+        if (file is File) {
+          size += await file.length();
+        }
+      }
+      return size;
+    }
+    return 0;
+  }
+
+  Future<Map<String, dynamic>> getCacheInfo() async {
+    final directory = await getTemporaryDirectory();
+    final cacheDir = Directory(p.join(directory.path, key));
+    if (await cacheDir.exists()) {
+      int fileCount = 0;
+      int totalSize = 0;
+      await for (final file in cacheDir.list(recursive: true)) {
+        if (file is File) {
+          fileCount++;
+          totalSize += await file.length();
+        }
+      }
+      return {
+        'fileCount': fileCount,
+        'totalSize': totalSize,
+        'maxSize': maxNrOfCacheObjects,
+        'maxAge': maxAge.inDays,
+      };
+    }
+    return {
+      'fileCount': 0,
+      'totalSize': 0,
+      'maxSize': maxNrOfCacheObjects,
+      'maxAge': maxAge.inDays,
+    };
   }
 }
